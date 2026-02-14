@@ -41,6 +41,7 @@ contract OrbitRouter is IOrbit {
         uint256 _amountIn,
         uint256 _destChainId,
         address _tokenOutOnDest,
+        uint24  _fee,           // <--- NEW PARAMETER
         uint256 _minAmountOut
     ) external {
         address destExecutor = remoteExecutors[_destChainId];
@@ -50,10 +51,8 @@ contract OrbitRouter is IOrbit {
         IERC20(_tokenIn).safeTransferFrom(msg.sender, address(this), _amountIn);
 
         // 2. Bridge Tokens (Send to Destination Executor)
-        // We approve the bridge to take our tokens
         IERC20(_tokenIn).forceApprove(SUPERCHAIN_BRIDGE, _amountIn);
         
-        // This moves the tokens from Source -> Destination Executor
         ISuperchainTokenBridge(SUPERCHAIN_BRIDGE).sendERC20(
             _tokenIn,
             destExecutor,
@@ -62,23 +61,22 @@ contract OrbitRouter is IOrbit {
         );
 
         // 3. Send Instructions (Message)
-        // We encode the logic we want the destination to perform
         SwapMessage memory payload = SwapMessage({
             user: msg.sender,
-            tokenIn: _tokenIn, // Note: This assumes token address is same on both chains (SuperchainERC20)
+            tokenIn: _tokenIn, 
             tokenOut: _tokenOutOnDest,
+            fee: _fee,           // <--- ADDED HERE
             amountIn: _amountIn,
             minAmountOut: _minAmountOut,
             deadline: block.timestamp + 30 minutes
         });
 
-        // FIX: Use encodeWithSelector instead of encodeCall for raw signatures
         bytes memory message = abi.encodeWithSelector(
-            bytes4(keccak256("executeSwap((address,address,address,uint256,uint256,uint256))")),
+            // Updated signature to include uint24
+            bytes4(keccak256("executeSwap((address,address,address,uint24,uint256,uint256,uint256))")),
             payload
         );
 
-        // Send the message via the L2 Messenger
         IL2ToL2CrossDomainMessenger(L2_MESSENGER).sendMessage(
             _destChainId,
             destExecutor,

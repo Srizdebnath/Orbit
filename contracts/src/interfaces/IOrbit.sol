@@ -7,6 +7,7 @@ interface IOrbit {
         address user;           // The user who initiated the swap
         address tokenIn;        // The token received on dest chain (e.g., ETH)
         address tokenOut;       // The token the user wants (e.g., USDC)
+        uint24  fee;            // Uniswap Pool Fee (e.g., 3000 for 0.3%)
         uint256 amountIn;       // Amount bridged
         uint256 minAmountOut;   // Slippage protection
         uint256 deadline;       // When to expire
@@ -25,5 +26,11 @@ interface IOrbit {
         address indexed user,
         address tokenOut,
         uint256 amountOut
+    );
+
+    /// @notice Event emitted if swap fails and funds are returned
+    event SwapFailed(
+        address indexed user,
+        bytes reason
     );
 }
