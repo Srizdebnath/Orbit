@@ -1,4 +1,5 @@
 [profile.default]
+solc = "/usr/local/bin/solc"
 src = "src"
 out = "out"
 libs = ["lib"]
